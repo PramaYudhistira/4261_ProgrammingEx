@@ -26,7 +26,4 @@ def create_app():
     #REGISTER BLUEPRINTS
     app.register_blueprint(auth_bp)
 
-
-
-    print("setup done")
     return app
