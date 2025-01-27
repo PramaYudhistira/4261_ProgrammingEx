@@ -1,5 +1,6 @@
 from flask import Flask
 from flask_jwt_extended import JWTManager
+from flask_cors import CORS
 from app.blueprints.auth import auth_bp
 from app.blueprints.default import default_bp
 import os
@@ -10,6 +11,7 @@ jwt = JWTManager()
 
 def create_app():
     app = Flask(__name__)
+    CORS(app)
 
 
     #JWT SECRET KEY:

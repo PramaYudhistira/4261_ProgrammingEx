@@ -17,7 +17,7 @@ type Task = {
   deadline: Date | null;
 };
 
-const API_BASE_URL = "http://<your-backend-url>"; // Replace with your backend URL
+const API_BASE_URL = "http://127.0.0.1:5000/auth"; // Replace with your backend URL
 
 export default function Index() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -37,10 +37,17 @@ export default function Index() {
     };
     checkLogin();
   }, []);
-
+  const test = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/hello`);
+      Alert.alert("Success", "Logged in successfully!");
+    } catch (error) {
+      Alert.alert("Error", "Login failed. Please check your credentials.");
+    }
+  };
   const handleLogin = async () => {
     try {
-      const response = await axios.post(`http://127.0.0.1:5000/auth/login`, {
+      const response = await axios.post(`${API_BASE_URL}/login`, {
         username: email,
         password,
       });
@@ -55,7 +62,7 @@ export default function Index() {
 
   const handleRegister = async () => {
     try {
-      await axios.post(`http://127.0.0.1:5000/auth/register`, {
+      await axios.post(`${API_BASE_URL}register`, {
         username: email,
         password: password,
       });
@@ -144,6 +151,9 @@ export default function Index() {
           onPress={() => setIsRegistering(true)}
         >
           <Text style={styles.buttonTextSecondary}>Create Account</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.buttonPrimary} onPress={test}>
+          <Text style={styles.buttonText}>Test</Text>
         </TouchableOpacity>
       </View>
     );
