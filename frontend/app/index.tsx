@@ -7,9 +7,12 @@ import {
   TouchableOpacity,
   Alert,
   StyleSheet,
+  Platform,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
+import DateTimePicker from "@react-native-community/datetimepicker";
+
 
 type Task = {
   id: string;
@@ -17,36 +20,35 @@ type Task = {
   deadline: Date | null;
 };
 
-const API_BASE_URL = "http://127.0.0.1:5000/auth"; // Replace with your backend URL
+const API_BASE_URL = "http://127.0.0.1:5000/auth"; // Update to your backend URL
 
 export default function Index() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(true); // Set to true for testing
   const [isRegistering, setIsRegistering] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Simulated loading state
   const [email, setEmail] = useState("");
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const [password, setPassword] = useState("");
-  const [tasks, setTasks] = useState<Task[]>([]);
   const [task, setTask] = useState("");
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [deadline, setDeadline] = useState<Date | null>(null);
+  const [showDateTimePicker, setShowDateTimePicker] = useState(false);
+
 
   useEffect(() => {
-    const checkLogin = async () => {
-      const token = await AsyncStorage.getItem("authToken");
-      setIsLoggedIn(!!token);
+    const initializeApp = async () => {
+      // Simulate checking for stored auth token
       setLoading(false);
     };
-    checkLogin();
+    initializeApp();
   }, []);
-  const test = async () => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/hello`);
-      Alert.alert("Success", "Logged in successfully!");
-    } catch (error) {
-      Alert.alert("Error", "Login failed. Please check your credentials.");
-    }
-  };
+
   const handleLogin = async () => {
     try {
+      if (!emailRegex.test(email)) {
+        Alert.alert("Error", "Please enter a valid email address.");
+        return;
+      }
       const response = await axios.post(`${API_BASE_URL}/login`, {
         username: email,
         password,
@@ -62,9 +64,13 @@ export default function Index() {
 
   const handleRegister = async () => {
     try {
-      await axios.post(`${API_BASE_URL}register`, {
+      if (!emailRegex.test(email)) {
+        Alert.alert("Error", "Please enter a valid email address.");
+        return;
+      }
+      await axios.post(`${API_BASE_URL}/register`, {
         username: email,
-        password: password,
+        password,
       });
       Alert.alert("Success", "Account created successfully! You can now log in.");
       setIsRegistering(false);
@@ -79,12 +85,20 @@ export default function Index() {
   };
 
   const addTask = () => {
-    if (task.trim()) {
+    if (task.trim() && deadline) {
       setTasks([...tasks, { id: Date.now().toString(), title: task, deadline }]);
       setTask("");
       setDeadline(null);
+          setShowDateTimePicker(false);
     } else {
-      Alert.alert("Error", "Please enter a task and select a deadline.");
+      Alert.alert("Error", "Please enter a task and set a deadline.");
+    }
+  };
+
+  const handleDateTimeChange = (event: any, selectedDate: Date | undefined) => {
+
+    if (selectedDate) {
+      setDeadline(selectedDate);
     }
   };
 
@@ -96,40 +110,12 @@ export default function Index() {
     );
   }
 
-  if (!isLoggedIn) {
-    if (isRegistering) {
-      return (
-        <View style={styles.containerCentered}>
-          <Text style={styles.headerText}>Create Account</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            value={email}
-            onChangeText={setEmail}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-          />
-          <TouchableOpacity style={styles.buttonPrimary} onPress={handleRegister}>
-            <Text style={styles.buttonText}>Register</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.buttonSecondary}
-            onPress={() => setIsRegistering(false)}
-          >
-            <Text style={styles.buttonTextSecondary}>Back to Login</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-
+  if (isLoggedIn) {
     return (
       <View style={styles.containerCentered}>
-        <Text style={styles.headerText}>Login</Text>
+        <Text style={styles.headerText}>
+          {isRegistering ? "Create Account" : "Login"}
+        </Text>
         <TextInput
           style={styles.input}
           placeholder="Email"
@@ -143,17 +129,21 @@ export default function Index() {
           value={password}
           onChangeText={setPassword}
         />
-        <TouchableOpacity style={styles.buttonPrimary} onPress={handleLogin}>
-          <Text style={styles.buttonText}>Login</Text>
+        <TouchableOpacity
+          style={styles.buttonPrimary}
+          onPress={isRegistering ? handleRegister : handleLogin}
+        >
+          <Text style={styles.buttonText}>
+            {isRegistering ? "Register" : "Login"}
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.buttonSecondary}
-          onPress={() => setIsRegistering(true)}
+          onPress={() => setIsRegistering(!isRegistering)}
         >
-          <Text style={styles.buttonTextSecondary}>Create Account</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.buttonPrimary} onPress={test}>
-          <Text style={styles.buttonText}>Test</Text>
+          <Text style={styles.buttonTextSecondary}>
+            {isRegistering ? "Back to Login" : "Create Account"}
+          </Text>
         </TouchableOpacity>
       </View>
     );
@@ -162,20 +152,30 @@ export default function Index() {
   return (
     <View style={styles.container}>
       <Text style={styles.headerText}>Your To-Do List</Text>
-      <TouchableOpacity style={styles.buttonDanger} onPress={handleLogout}>
-        <Text style={styles.buttonText}>Logout</Text>
-      </TouchableOpacity>
       <TextInput
         style={styles.input}
         placeholder="Add a task"
         value={task}
         onChangeText={setTask}
       />
-      <TouchableOpacity style={styles.buttonPrimary} onPress={() => setDeadline(new Date())}>
+      <TouchableOpacity
+        style={styles.buttonPrimary}
+        onPress={() => setShowDateTimePicker(true)}
+      >
         <Text style={styles.buttonText}>
-          {deadline ? `Deadline: ${deadline.toDateString()}` : "Set Deadline"}
+          {deadline
+            ? `Deadline: ${deadline.toLocaleString([], { dateStyle: "short", timeStyle: "short" })}`
+            : "Set Deadline"}
         </Text>
       </TouchableOpacity>
+      {showDateTimePicker && (
+        <DateTimePicker
+          value={deadline || new Date()}
+          mode="datetime"
+          display={Platform.OS === "ios" ? "inline" : "default"}
+          onChange={handleDateTimeChange}
+        />
+      )}
       <TouchableOpacity style={styles.buttonPrimary} onPress={addTask}>
         <Text style={styles.buttonText}>Add Task</Text>
       </TouchableOpacity>
@@ -186,7 +186,13 @@ export default function Index() {
           <View style={styles.taskItem}>
             <Text style={styles.taskTitle}>{item.title}</Text>
             <Text style={styles.taskDeadline}>
-              Deadline: {item.deadline ? item.deadline.toDateString() : "No deadline"}
+              Deadline:{" "}
+              {item.deadline
+                ? new Date(item.deadline).toLocaleString([], {
+                    dateStyle: "short",
+                    timeStyle: "short",
+                  })
+                : "No deadline"}
             </Text>
             <TouchableOpacity
               style={styles.deleteButton}
@@ -200,6 +206,12 @@ export default function Index() {
           <Text style={styles.emptyText}>No tasks yet. Add a task to get started!</Text>
         )}
       />
+      <TouchableOpacity
+        style={styles.buttonDanger}
+        onPress={handleLogout}
+      >
+        <Text style={styles.buttonText}>Logout</Text>
+      </TouchableOpacity>
     </View>
   );
 }

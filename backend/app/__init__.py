@@ -15,7 +15,7 @@ def create_app():
 
 
     #JWT SECRET KEY:
-    app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY_JWT")
+    app.config["SECRET_KEY_JWT"] = os.environ.get("SECRET_KEY_JWT")
 
     #INITIALIZE JWT MANAGER
     jwt.init_app(app)
