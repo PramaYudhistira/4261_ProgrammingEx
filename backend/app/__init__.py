@@ -1,6 +1,7 @@
 from flask import Flask
 from flask_jwt_extended import JWTManager
 from app.blueprints.auth import auth_bp
+from app.blueprints.default import default_bp
 import os
 
 
@@ -13,8 +14,6 @@ def create_app():
 
     #JWT SECRET KEY:
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY_JWT")
-    app.config["test"] = "testing"
-
 
     #INITIALIZE JWT MANAGER
     jwt.init_app(app)
@@ -24,6 +23,8 @@ def create_app():
 
 
     #REGISTER BLUEPRINTS
+    print("registering blueprints")
     app.register_blueprint(auth_bp)
+    app.register_blueprint(default_bp)
 
     return app

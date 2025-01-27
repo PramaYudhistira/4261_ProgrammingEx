@@ -34,3 +34,8 @@ def login():
 def get_token():
     token = jwt.encode({"dummy": "data"}, current_app.config["SECRET_KEY_JWT"], algorithm="HS256")
     return jsonify({"token": token, "message": "backend connected!!!"}), 200
+
+
+@auth_bp.route("/hello", methods=["GET"])
+def hello():
+    return jsonify({"message": "hello from auth blueprint"}), 200
