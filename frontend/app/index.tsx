@@ -143,7 +143,6 @@ export default function Index() {
       setDeadline(null);
       setShowDateTimePicker(false);
       if (deadline) {
-        const delayInSeconds = Math.max(0, Math.floor((deadline.getTime() - Date.now()) / 1000));
         if (newTask.deadline) {
           scheduleNotification(newTask.title, newTask.deadline);
         }
