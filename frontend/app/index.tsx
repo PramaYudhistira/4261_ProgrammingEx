@@ -1,102 +1,307 @@
-import React, { useState } from "react";
-import { Text, View, TextInput, FlatList, TouchableOpacity } from "react-native";
-import { useNavigation } from "expo-router";
+import React, { useState, useEffect } from "react";
+import {
+  Text,
+  View,
+  TextInput,
+  FlatList,
+  TouchableOpacity,
+  Alert,
+  StyleSheet,
+} from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
+
 type Task = {
   id: string;
   title: string;
+  deadline: Date | null;
 };
 
+const API_BASE_URL = "http://<your-backend-url>"; // Replace with your backend URL
+
 export default function Index() {
-  const [task, setTask] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [tasks, setTasks] = useState<Task[]>([]);
-  const navigation = useNavigation();
+  const [task, setTask] = useState("");
+  const [deadline, setDeadline] = useState<Date | null>(null);
 
-  React.useLayoutEffect(() => {
-    navigation.setOptions({
-      headerShown: false,
-    });
-  }, [navigation]);
+  useEffect(() => {
+    const checkLogin = async () => {
+      const token = await AsyncStorage.getItem("authToken");
+      setIsLoggedIn(!!token);
+      setLoading(false);
+    };
+    checkLogin();
+  }, []);
 
-
-  const addTask = () => {
-    if (task.trim()) {
-      setTasks([...tasks, { id: Date.now().toString(), title: task }]);
-      setTask("");
+  const handleLogin = async () => {
+    try {
+      const response = await axios.post(`http://127.0.0.1:5000/auth/login`, {
+        username: email,
+        password,
+      });
+      const { token } = response.data;
+      await AsyncStorage.setItem("authToken", token);
+      setIsLoggedIn(true);
+      Alert.alert("Success", "Logged in successfully!");
+    } catch (error) {
+      Alert.alert("Error", "Login failed. Please check your credentials.");
     }
   };
 
-  const deleteTask = (id: string) => {
-    setTasks(tasks.filter((t) => t.id !== id));
+  const handleRegister = async () => {
+    try {
+      await axios.post(`http://127.0.0.1:5000/auth/register`, {
+        username: email,
+        password,
+      });
+      Alert.alert("Success", "Account created successfully! You can now log in.");
+      setIsRegistering(false);
+    } catch (error) {
+      Alert.alert("Error", "Registration failed. Please try again.");
+    }
   };
 
-  return (
-    <View style={{ flex: 1, backgroundColor: "#f2f4f7", padding: 20 }}>
-      <Text style={{ fontSize: 28, fontWeight: "bold", color: "#333", marginBottom: 20 }}>
-        To-Do List
-      </Text>
+  const handleLogout = async () => {
+    await AsyncStorage.removeItem("authToken");
+    setIsLoggedIn(false);
+  };
 
-      <View style={{ flexDirection: "row", marginBottom: 20 }}>
+  const addTask = () => {
+    if (task.trim()) {
+      setTasks([...tasks, { id: Date.now().toString(), title: task, deadline }]);
+      setTask("");
+      setDeadline(null);
+    } else {
+      Alert.alert("Error", "Please enter a task and select a deadline.");
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.containerCentered}>
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    );
+  }
+
+  if (!isLoggedIn) {
+    if (isRegistering) {
+      return (
+        <View style={styles.containerCentered}>
+          <Text style={styles.headerText}>Create Account</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            value={email}
+            onChangeText={setEmail}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+          />
+          <TouchableOpacity style={styles.buttonPrimary} onPress={handleRegister}>
+            <Text style={styles.buttonText}>Register</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.buttonSecondary}
+            onPress={() => setIsRegistering(false)}
+          >
+            <Text style={styles.buttonTextSecondary}>Back to Login</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.containerCentered}>
+        <Text style={styles.headerText}>Login</Text>
         <TextInput
-          style={{
-            flex: 1,
-            backgroundColor: "#fff",
-            borderWidth: 1,
-            borderColor: "#ccc",
-            borderRadius: 8,
-            padding: 10,
-            marginRight: 10,
-            fontSize: 16,
-          }}
-          placeholder="Add a task"
-          value={task}
-          onChangeText={setTask}
+          style={styles.input}
+          placeholder="Email"
+          value={email}
+          onChangeText={setEmail}
         />
+        <TextInput
+          style={styles.input}
+          placeholder="Password"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+        />
+        <TouchableOpacity style={styles.buttonPrimary} onPress={handleLogin}>
+          <Text style={styles.buttonText}>Login</Text>
+        </TouchableOpacity>
         <TouchableOpacity
-          style={{
-            backgroundColor: "#007BFF",
-            paddingVertical: 12,
-            paddingHorizontal: 20,
-            borderRadius: 8,
-            justifyContent: "center",
-          }}
-          onPress={addTask}
+          style={styles.buttonSecondary}
+          onPress={() => setIsRegistering(true)}
         >
-          <Text style={{ color: "#fff", fontSize: 16, fontWeight: "bold" }}>Add</Text>
+          <Text style={styles.buttonTextSecondary}>Create Account</Text>
         </TouchableOpacity>
       </View>
+    );
+  }
 
+  return (
+    <View style={styles.container}>
+      <Text style={styles.headerText}>Your To-Do List</Text>
+      <TouchableOpacity style={styles.buttonDanger} onPress={handleLogout}>
+        <Text style={styles.buttonText}>Logout</Text>
+      </TouchableOpacity>
+      <TextInput
+        style={styles.input}
+        placeholder="Add a task"
+        value={task}
+        onChangeText={setTask}
+      />
+      <TouchableOpacity style={styles.buttonPrimary} onPress={() => setDeadline(new Date())}>
+        <Text style={styles.buttonText}>
+          {deadline ? `Deadline: ${deadline.toDateString()}` : "Set Deadline"}
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.buttonPrimary} onPress={addTask}>
+        <Text style={styles.buttonText}>Add Task</Text>
+      </TouchableOpacity>
       <FlatList
         data={tasks}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-              backgroundColor: "#fff",
-              padding: 15,
-              borderRadius: 8,
-              marginBottom: 10,
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 5,
-              elevation: 3,
-            }}
-          >
-            <Text style={{ fontSize: 16, color: "#333" }}>{item.title}</Text>
-            <TouchableOpacity onPress={() => deleteTask(item.id)}>
-              <Text style={{ color: "#FF4D4D", fontSize: 16, fontWeight: "bold" }}>Delete</Text>
+          <View style={styles.taskItem}>
+            <Text style={styles.taskTitle}>{item.title}</Text>
+            <Text style={styles.taskDeadline}>
+              Deadline: {item.deadline ? item.deadline.toDateString() : "No deadline"}
+            </Text>
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={() => setTasks(tasks.filter((t) => t.id !== item.id))}
+            >
+              <Text style={styles.deleteText}>Delete</Text>
             </TouchableOpacity>
           </View>
         )}
         ListEmptyComponent={() => (
-          <Text style={{ textAlign: "center", color: "#999", marginTop: 20 }}>
-            No tasks yet. Add a task to get started!
-          </Text>
+          <Text style={styles.emptyText}>No tasks yet. Add a task to get started!</Text>
         )}
       />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#f4f4f4",
+    padding: 20,
+  },
+  containerCentered: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  headerText: {
+    fontSize: 26,
+    fontWeight: "bold",
+    marginBottom: 20,
+    color: "#333",
+  },
+  input: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 10,
+    fontSize: 16,
+    width: "100%",
+    maxWidth: 400,
+  },
+  buttonPrimary: {
+    backgroundColor: "#007BFF",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: "center",
+    marginBottom: 10,
+    width: "100%",
+    maxWidth: 400,
+  },
+  buttonSecondary: {
+    borderColor: "#007BFF",
+    borderWidth: 1,
+    backgroundColor: "#fff",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: "center",
+    width: "100%",
+    maxWidth: 400,
+  },
+  buttonDanger: {
+    backgroundColor: "#FF4D4D",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: "center",
+    marginBottom: 20,
+    width: "100%",
+    maxWidth: 400,
+  },
+  buttonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  buttonTextSecondary: {
+    color: "#007BFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  taskItem: {
+    backgroundColor: "#fff",
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  taskTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#333",
+  },
+  taskDeadline: {
+    fontSize: 14,
+    color: "#777",
+    marginTop: 4,
+  },
+  deleteButton: {
+    marginTop: 10,
+    alignSelf: "flex-start",
+  },
+  deleteText: {
+    color: "#FF4D4D",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  emptyText: {
+    textAlign: "center",
+    color: "#888",
+    marginTop: 20,
+    fontSize: 16,
+  },
+  loadingText: {
+    fontSize: 18,
+    color: "#666",
+  },
+});
