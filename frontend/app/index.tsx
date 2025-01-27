@@ -57,7 +57,7 @@ export default function Index() {
     try {
       await axios.post(`http://127.0.0.1:5000/auth/register`, {
         username: email,
-        password,
+        password: password,
       });
       Alert.alert("Success", "Account created successfully! You can now log in.");
       setIsRegistering(false);

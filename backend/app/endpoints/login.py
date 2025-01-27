@@ -19,7 +19,11 @@ def register():
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
+    print("BEFORE CALLING get_json")
+
     data = request.get_json()
+
+    print("CHECK")
     username = data.get("username")
     password = data.get("password")
 
