@@ -57,6 +57,36 @@ export default function Index() {
     };
     checkLogin();
   }, []);
+
+
+  const validateInputs = (email: string, password: string) => {
+    const usernameRegex = /^[a-zA-Z0-9]{4,}$/;
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/; // At least 6 chars, 1 letter, 1 number
+  
+    if (!email.trim()) {
+      Alert.alert("Error", "Username cannot be empty. Must be above 4 characters.");
+      return false;
+    }
+  
+    if (!usernameRegex.test(email)) {
+      Alert.alert("Error", "Please enter a valid username");
+      return false;
+    }
+  
+    if (!password.trim()) {
+      Alert.alert("Error", "Password cannot be empty.");
+      return false;
+    }
+  
+    if (!passwordRegex.test(password)) {
+      Alert.alert("Error", "Password must be at least 6 characters and contain at least one letter and one number.");
+      return false;
+    }
+  
+    return true;
+  };
+
+
   const scheduleNotification = async (title: string, deadline: Date) => {
     try {
       await Notifications.scheduleNotificationAsync({
@@ -87,6 +117,7 @@ export default function Index() {
 
 
   const handleLogin = async () => {
+    if (!validateInputs(email, password)) return; 
     try {
       const response = await axios.post(`${API_BASE_URL}/auth/login`, {
         username: email,
@@ -96,11 +127,12 @@ export default function Index() {
       await AsyncStorage.setItem("authToken", String(token));
       setIsLoggedIn(true);
     } catch (error) {
-      Alert.alert(`Error", "Login failed. Please check your credentials.`);
+      Alert.alert("Login failed. Please check your credentials");
     }
   };
 
   const handleRegister = async () => {
+    if (!validateInputs(email, password)) return; 
     try {
       await axios.post(`${API_BASE_URL}/register`, {
         username: email,
