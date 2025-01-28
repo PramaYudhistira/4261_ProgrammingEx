@@ -20,7 +20,7 @@ type Task = {
   deadline: Date | null;
 };
 
-const API_BASE_URL = "http://127.0.0.1:5000";
+const API_BASE_URL = "https://four261-programmingex.onrender.com";
 
 export default function Index() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -118,15 +118,20 @@ export default function Index() {
 
   const handleLogin = async () => {
     if (!validateInputs(email, password)) return; 
+    console.log("Logging in with:", email, password);
     try {
       const response = await axios.post(`${API_BASE_URL}/auth/login`, {
         username: email,
         password: password,
       });
-      const [{ token }] = response.data;
+      const { token } = response.data;
       await AsyncStorage.setItem("authToken", String(token));
       const s = await AsyncStorage.getItem("authToken");
       console.log("Token from storage:", s);
+      
+  
+      // Update state with fetched tasks
+      
       setIsLoggedIn(true);
     } catch (error) {
       Alert.alert("Login failed. Please check your credentials");
@@ -156,6 +161,27 @@ export default function Index() {
 
 
   
+  const handleDelete = (event: any, title: string) => {
+    event.persist(); // Prevents the event from being nullified
+    deleteTask(title);
+  };
+
+  const deleteTask = async (title: string) => {
+      try {
+        const token = await AsyncStorage.getItem("authToken");
+        console.log("Token:", token);
+        console.log("Task to delete:", title);
+        await axios.delete(`${API_BASE_URL}/delete_task`, {
+          headers: { Authorization: `Bearer ${token}`},
+          data: { title }
+        });
+        Alert.alert(`Task deleted: ${title}`);
+        setTasks(tasks.filter((task) => task.title !== title));
+        
+      } catch (error) {
+        Alert.alert("Error", "Failed to delete task. Please try again.");
+      }
+    };
 
   // Add a task with a deadline
   const addTask = async () => {
@@ -303,7 +329,7 @@ export default function Index() {
             </Text>
             <TouchableOpacity
               style={styles.deleteButton}
-              onPress={() => setTasks(tasks.filter((t) => t.id !== item.id))}
+              onPress={(event) => handleDelete(event, item.title)}
             >
               <Text style={styles.deleteText}>Delete</Text>
             </TouchableOpacity>
