@@ -20,10 +20,10 @@ type Task = {
   deadline: Date | null;
 };
 
-const API_BASE_URL = "http://127.0.0.1:5000/auth"; // Update to your backend URL
+const API_BASE_URL = "http://127.0.0.1:5000/auth";
 
 export default function Index() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // Set to true for testing
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState("");
@@ -64,7 +64,7 @@ export default function Index() {
       await Notifications.scheduleNotificationAsync({
         content: {
           title: "Task Reminder",
-          body: `Don't forget to complete: ${title}`,
+          body: `Don't forget to: ${title}`,
           sound: true,
         },
         trigger: {
@@ -136,21 +136,31 @@ export default function Index() {
 
   // Add a task with a deadline
   const addTask = () => {
-    if (task.trim()) {
-      const newTask = { id: Date.now().toString(), title: task, deadline };
-      setTasks([...tasks, newTask]);
-      setTask("");
-      setDeadline(null);
-      setShowDateTimePicker(false);
-      if (deadline) {
-        if (newTask.deadline) {
-          scheduleNotification(newTask.title, newTask.deadline);
-        }
-      }
-    } else {
-      Alert.alert("Error", "Please enter a task and set a deadline.");
+    if (!task.trim()) {
+      Alert.alert("Error", "Please enter a task.");
+      return;
     }
+  
+    if (!deadline) {
+      Alert.alert("Error", "Please set a deadline.");
+      return;
+    }
+  
+    if (new Date(deadline) < new Date()) {
+      Alert.alert("Error", "Deadline cannot be in the past.");
+      return;
+    }
+  
+    const newTask = { id: Date.now().toString(), title: task, deadline };
+    setTasks([...tasks, newTask]);
+    setTask("");
+    setDeadline(null);
+    setShowDateTimePicker(false);
+  
+    // Schedule a notification for the task
+    scheduleNotification(newTask.title, newTask.deadline);
   };
+  
 
   // Handle date picker
   const handleDateTimeChange = (event: any, selectedDate: Date | undefined) => {
