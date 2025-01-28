@@ -21,11 +21,8 @@ def get_user_test():
 @jwt_required()
 def add_task():
     try:
-        print("trying this endpoint")
         data = request.get_json()
-        print("checking task")
         task = data.get("task")
-        print(task)
 
         task_name = task.get("title")
         
