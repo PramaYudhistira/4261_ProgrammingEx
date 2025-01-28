@@ -1,7 +1,10 @@
 from flask import jsonify, request
 from app import mongo_db as db
 from app.blueprints.default import default_bp
+from flask_jwt_extended import jwt_required, get_jwt_identity
+
 import bcrypt
+
 
 @default_bp.route("/user_test", methods=["GET"])
 def get_user_test():
@@ -14,6 +17,28 @@ def get_user_test():
     if user:
         user["_id"] = str(user["_id"])
         return jsonify(user), 200
+
+
+@default_bp.route("/add_task", methods=["POST"])
+@jwt_required()
+def add_task():
+    try:
+        data = request.get_json()
+        task = data.get("task")
+        
+        current_user = get_jwt_identity() # this will return the username from the JWT
+
+        if not task:
+            return jsonify({"error": "Task is required"}), 400
+
+        db["users"].update_one({"username": current_user}, {"$push": {"tasks": task}})
+
+        return jsonify({"message": "Task added successfully"}), 201
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify({"error": "Internal Server Error"}), 500
+
 
 @default_bp.route('/register', methods=['POST'])
 def register():
