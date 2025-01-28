@@ -32,7 +32,7 @@ def register():
 
         hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
 
-        user = {"username": username, "password": hashed_password.decode('utf-8')}
+        user = {"username": username, "password": hashed_password.decode('utf-8'), "tasks": []}
         db.users.insert_one(user)
 
         return jsonify({"message": "User registered successfully"}), 201
