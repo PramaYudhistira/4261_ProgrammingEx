@@ -147,6 +147,7 @@ export default function Index() {
 
   // Logout functionality
   const handleLogout = async () => {
+    setTasks([]);
     await AsyncStorage.removeItem("authToken");
     setIsLoggedIn(false);
   };
