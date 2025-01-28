@@ -6,13 +6,13 @@ import {
   FlatList,
   TouchableOpacity,
   Alert,
-  StyleSheet,
   Platform,
+  StyleSheet,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import DateTimePicker from "@react-native-community/datetimepicker";
-
+import * as Notifications from "expo-notifications";
 
 type Task = {
   id: string;
@@ -23,25 +23,70 @@ type Task = {
 const API_BASE_URL = "http://127.0.0.1:5000/auth"; // Update to your backend URL
 
 export default function Index() {
-  const [isLoggedIn, setIsLoggedIn] = useState(true); // Set to true for testing
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // Set to true for testing
   const [isRegistering, setIsRegistering] = useState(false);
-  const [loading, setLoading] = useState(false); // Simulated loading state
+  const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState("");
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const [password, setPassword] = useState("");
   const [task, setTask] = useState("");
   const [tasks, setTasks] = useState<Task[]>([]);
   const [deadline, setDeadline] = useState<Date | null>(null);
   const [showDateTimePicker, setShowDateTimePicker] = useState(false);
-
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  
+  useEffect(() => {
+    const requestPermissions = async () => {
+      const { status } = await Notifications.requestPermissionsAsync();
+  
+      if (status === "granted") {
+        Alert.alert("Permission Granted", "You will receive task reminders.");
+      } else if (status === "denied") {
+        Alert.alert(
+          "Permission Denied",
+          "You chose to deny notifications. You can enable them later in your device settings."
+        );
+      } 
+    };
+    requestPermissions();
+  }, []);
+  
 
   useEffect(() => {
-    const initializeApp = async () => {
-      // Simulate checking for stored auth token
+    const checkLogin = async () => {
+      const token = await AsyncStorage.getItem("authToken");
+      setIsLoggedIn(!!token);
       setLoading(false);
     };
-    initializeApp();
+    checkLogin();
   }, []);
+  const scheduleNotification = async (title: string, deadline: Date) => {
+    try {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "Task Reminder",
+          body: `Don't forget to complete: ${title}`,
+          sound: true,
+        },
+        trigger: {
+          type:  Notifications.SchedulableTriggerInputTypes.DATE,
+          date: deadline, 
+        },
+      });
+      Alert.alert(
+        "Notification Scheduled",
+        `A reminder has been set for ${deadline.toLocaleString([], {
+          dateStyle: "short",
+          timeStyle: "short",
+        })}.`
+      );
+    } catch (error) {
+      Alert.alert("Please select a future time for the reminder.");
+    }
+  };
+  
+
+
+
 
   const handleLogin = async () => {
     try {
@@ -72,6 +117,7 @@ export default function Index() {
         username: email,
         password,
       });
+      
       Alert.alert("Success", "Account created successfully! You can now log in.");
       setIsRegistering(false);
     } catch (error) {
@@ -79,24 +125,35 @@ export default function Index() {
     }
   };
 
+  // Logout functionality
   const handleLogout = async () => {
     await AsyncStorage.removeItem("authToken");
     setIsLoggedIn(false);
   };
 
+
+  
+
+  // Add a task with a deadline
   const addTask = () => {
-    if (task.trim() && deadline) {
-      setTasks([...tasks, { id: Date.now().toString(), title: task, deadline }]);
+    if (task.trim()) {
+      const newTask = { id: Date.now().toString(), title: task, deadline };
+      setTasks([...tasks, newTask]);
       setTask("");
       setDeadline(null);
-          setShowDateTimePicker(false);
+      setShowDateTimePicker(false);
+      if (deadline) {
+        if (newTask.deadline) {
+          scheduleNotification(newTask.title, newTask.deadline);
+        }
+      }
     } else {
       Alert.alert("Error", "Please enter a task and set a deadline.");
     }
   };
 
+  // Handle date picker
   const handleDateTimeChange = (event: any, selectedDate: Date | undefined) => {
-
     if (selectedDate) {
       setDeadline(selectedDate);
     }
@@ -168,12 +225,14 @@ export default function Index() {
             : "Set Deadline"}
         </Text>
       </TouchableOpacity>
+
       {showDateTimePicker && (
         <DateTimePicker
           value={deadline || new Date()}
           mode="datetime"
           display={Platform.OS === "ios" ? "inline" : "default"}
           onChange={handleDateTimeChange}
+          
         />
       )}
       <TouchableOpacity style={styles.buttonPrimary} onPress={addTask}>
@@ -215,6 +274,8 @@ export default function Index() {
     </View>
   );
 }
+
+
 
 const styles = StyleSheet.create({
   container: {
