@@ -1,5 +1,8 @@
 from flask import request, jsonify, current_app
 from app.blueprints.auth import auth_bp
+from app import mongo_db
+
+
 import bcrypt
 import jwt
 
