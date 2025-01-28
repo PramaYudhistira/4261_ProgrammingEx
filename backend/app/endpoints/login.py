@@ -1,13 +1,10 @@
 from flask import request, jsonify, current_app
 from app.blueprints.auth import auth_bp
-from app import mongo_db
+from app import mongo_db as db
 
 
 import bcrypt
 import jwt
-
-
-
 
 
 @auth_bp.route('/login', methods=['POST'])
@@ -18,12 +15,17 @@ def login():
 
     print("CHECK")
     username = data.get("username")
+
+    user = db["users"].find_one({"username": username})
     password = data.get("password")
-
-    #for now, we dont need password, just need to see if it returns token
-    token = jwt.encode({"username": username}, current_app.config["SECRET_KEY_JWT"], algorithm="HS256")
-
-    return jsonify({"token": token}, 200)
+    if user:
+        if bcrypt.checkpw(password.encode("utf-8"), user["password"].encode("utf-8")):
+            token = jwt.encode({"username": username}, current_app.config["SECRET_KEY_JWT"], algorithm="HS256")
+            return jsonify({"token": token}, 200)
+        else:
+            return jsonify({"message": "Invalid password"}), 401
+    else:
+        return jsonify({"message": "User not found"}), 404
 
 
 #this function is only for dummy token

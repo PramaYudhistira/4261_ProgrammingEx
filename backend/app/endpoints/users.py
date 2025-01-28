@@ -21,8 +21,11 @@ def register():
         data = request.get_json()  # Get JSON data from the request
 
         username = data.get("username")
+        user = db["users"].find_one({"username": username})
+        if user:
+            return jsonify({"error": "Username already exists"}), 400
+
         password = data.get("password")
-        print("1")
 
         if not username or not password:
             return jsonify({"error": "Username and password are required"}), 400
