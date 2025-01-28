@@ -7,17 +7,7 @@ import bcrypt
 import jwt
 
 
-@auth_bp.route("/register", methods=["POST"])
-def register():
-    data = request.get_json()
-    username = data.get("username")
-    password = data.get("password")
 
-    hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
-
-    #SAVE USERNAME AND HASHED PASSWORD TO DB
-
-    return jsonify({"message": "endpoint hit"}, 201)
 
 
 @auth_bp.route('/login', methods=['POST'])
