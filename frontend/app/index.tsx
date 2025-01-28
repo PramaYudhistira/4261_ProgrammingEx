@@ -20,7 +20,7 @@ type Task = {
   deadline: Date | null;
 };
 
-const API_BASE_URL = "http://127.0.0.1:5000/auth";
+const API_BASE_URL = "http://127.0.0.1:5000";
 
 export default function Index() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -32,7 +32,6 @@ export default function Index() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [deadline, setDeadline] = useState<Date | null>(null);
   const [showDateTimePicker, setShowDateTimePicker] = useState(false);
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   
   useEffect(() => {
     const requestPermissions = async () => {
@@ -89,34 +88,24 @@ export default function Index() {
 
   const handleLogin = async () => {
     try {
-      if (!emailRegex.test(email)) {
-        Alert.alert("Error", "Please enter a valid email address.");
-        return;
-      }
-      const response = await axios.post(`${API_BASE_URL}/login`, {
+      const response = await axios.post(`${API_BASE_URL}/auth/login`, {
         username: email,
-        password,
+        password: password,
       });
       const { token } = response.data;
-      await AsyncStorage.setItem("authToken", token);
+      await AsyncStorage.setItem("authToken", String(token));
       setIsLoggedIn(true);
-      Alert.alert("Success", "Logged in successfully!");
     } catch (error) {
-      Alert.alert("Error", "Login failed. Please check your credentials.");
+      Alert.alert(`Error", "Login failed. Please check your credentials.`);
     }
   };
 
   const handleRegister = async () => {
     try {
-      if (!emailRegex.test(email)) {
-        Alert.alert("Error", "Please enter a valid email address.");
-        return;
-      }
       await axios.post(`${API_BASE_URL}/register`, {
         username: email,
-        password,
+        password: password,
       });
-      
       Alert.alert("Success", "Account created successfully! You can now log in.");
       setIsRegistering(false);
     } catch (error) {
@@ -184,8 +173,7 @@ export default function Index() {
         </Text>
         <TextInput
           style={styles.input}
-          placeholder="Email"
-          value={email}
+          placeholder="Username"
           onChangeText={setEmail}
         />
         <TextInput
