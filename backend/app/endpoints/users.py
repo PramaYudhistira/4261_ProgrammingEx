@@ -9,10 +9,8 @@ import bcrypt
 @default_bp.route("/user_test", methods=["GET"])
 def get_user_test():
     test_user = {"username": "testUsername"}
-    print("going to mongo")
-    print(db)
+
     user = db["users"].find_one(test_user)
-    print('found')
 
     if user:
         user["_id"] = str(user["_id"])
@@ -25,15 +23,67 @@ def add_task():
     try:
         data = request.get_json()
         task = data.get("task")
+
+        task_name = task.get("title")
         
         current_user = get_jwt_identity() # this will return the username from the JWT
 
         if not task:
             return jsonify({"error": "Task is required"}), 400
+        
+        user = db["users"].find_one({"username": current_user})
+        
+        if user:
+            for existing_task in user.get("tasks", []):
+                print(existing_task)
+                if existing_task.get("title") == task_name:
+                    return jsonify({'error': "task already exists"}), 400
 
         db["users"].update_one({"username": current_user}, {"$push": {"tasks": task}})
 
         return jsonify({"message": "Task added successfully"}), 201
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify({"error": "Internal Server Error"}), 500
+
+
+@default_bp.route("/get_tasks", methods=["GET"])
+@jwt_required()
+def get_tasks():
+    try:
+        current_user = get_jwt_identity()  # this will return the username from the JWT
+
+        user = db["users"].find_one({"username": current_user})
+        tasks = user.get("tasks", [])
+
+        return jsonify({"tasks": tasks}), 200
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return jsonify({"error": "Internal Server Error"}), 500
+    
+
+@default_bp.route("/delete_task", methods=["DELETE"])
+@jwt_required()
+def delete_task():
+    try:
+        data = request.get_json()
+        task_title = data.get("title")
+
+        current_user = get_jwt_identity()  # this will return the username from the JWT
+
+        if not task_title:
+            return jsonify({"error": "Task is required"}), 400
+        
+        #check if task exists
+        user = db["users"].find_one({"username": current_user, "tasks.title": task_title})
+        if not user:
+            return jsonify({"error": "Task not found"}), 404
+
+        db["users"].update_one({"username": current_user}, {"$pull": {"tasks": {"title": task_title}}})
+
+        return jsonify({"message": "Task deleted successfully"}), 200
 
     except Exception as e:
         print(f"Error: {e}")

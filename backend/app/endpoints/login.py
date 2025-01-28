@@ -9,11 +9,8 @@ import jwt
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
-    print("BEFORE CALLING get_json")
-
     data = request.get_json()
 
-    print("CHECK")
     username = data.get("username")
 
     user = db["users"].find_one({"username": username})
