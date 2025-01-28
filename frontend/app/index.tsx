@@ -39,7 +39,6 @@ export default function Index() {
       const { status } = await Notifications.requestPermissionsAsync();
   
       if (status === "granted") {
-        Alert.alert("Permission Granted", "You will receive task reminders.");
       } else if (status === "denied") {
         Alert.alert(
           "Permission Denied",
@@ -146,7 +145,7 @@ export default function Index() {
       return;
     }
   
-    if (new Date(deadline) < new Date()) {
+    if (deadline && new Date(deadline) < new Date()) {
       Alert.alert("Error", "Deadline cannot be in the past.");
       return;
     }
@@ -177,7 +176,7 @@ export default function Index() {
     );
   }
 
-  if (isLoggedIn) {
+  if (!isLoggedIn) {
     return (
       <View style={styles.containerCentered}>
         <Text style={styles.headerText}>
