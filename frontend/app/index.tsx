@@ -123,8 +123,10 @@ export default function Index() {
         username: email,
         password: password,
       });
-      const { token } = response.data;
+      const [{ token }] = response.data;
       await AsyncStorage.setItem("authToken", String(token));
+      const s = await AsyncStorage.getItem("authToken");
+      console.log("Token from storage:", s);
       setIsLoggedIn(true);
     } catch (error) {
       Alert.alert("Login failed. Please check your credentials");
@@ -156,7 +158,7 @@ export default function Index() {
   
 
   // Add a task with a deadline
-  const addTask = () => {
+  const addTask = async () => {
     if (!task.trim()) {
       Alert.alert("Error", "Please enter a task.");
       return;
@@ -171,8 +173,24 @@ export default function Index() {
       Alert.alert("Error", "Deadline cannot be in the past.");
       return;
     }
-  
+
     const newTask = { id: Date.now().toString(), title: task, deadline };
+    try {
+      const token = await AsyncStorage.getItem("authToken");
+      console.log("Token:", token);
+      console.log("New Task:", newTask);
+      
+      const response = await axios.post(`${API_BASE_URL}/add_task`,
+        { task: newTask },
+        { headers: { Authorization: `Bearer ${token}`,
+                      "Content-Type":"application/json" } }
+      );
+      console.log("Task added successfully:", response.data);
+    } catch (error) {
+      Alert.alert(`${error}`);
+    }
+    
+
     setTasks([...tasks, newTask]);
     setTask("");
     setDeadline(null);
