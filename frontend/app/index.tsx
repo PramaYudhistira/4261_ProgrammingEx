@@ -13,6 +13,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as Notifications from "expo-notifications";
+import { API_BASE_URL } from '@env';
 
 type Task = {
   id: string;
@@ -20,7 +21,6 @@ type Task = {
   deadline: Date | null;
 };
 
-const API_BASE_URL = "https://four261-programmingex.onrender.com";
 
 export default function Index() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -114,7 +114,23 @@ export default function Index() {
   
 
 
+  const fetchTasks = async () => {
+    try {
+      const token = await AsyncStorage.getItem("authToken");
+      const response = await axios.get(`${API_BASE_URL}/get_tasks`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setTasks(response.data.tasks);
+    } catch (error) {
+      Alert.alert("Error", "Failed to fetch tasks. Please try again.");
+    }
+  };
 
+  useEffect(() => {
+    if (isLoggedIn) {
+      fetchTasks();
+    }
+  }, [isLoggedIn]);
 
   const handleLogin = async () => {
     if (!validateInputs(email, password)) return; 
@@ -124,14 +140,11 @@ export default function Index() {
         username: email,
         password: password,
       });
-      const { token } = response.data;
+      const [{ token }] = response.data;
       await AsyncStorage.setItem("authToken", String(token));
       const s = await AsyncStorage.getItem("authToken");
       console.log("Token from storage:", s);
-      
   
-      // Update state with fetched tasks
-      
       setIsLoggedIn(true);
     } catch (error) {
       Alert.alert("Login failed. Please check your credentials");
@@ -148,7 +161,7 @@ export default function Index() {
       Alert.alert("Success", "Account created successfully! You can now log in.");
       setIsRegistering(false);
     } catch (error) {
-      Alert.alert("Error", "Registration failed. Please try again.");
+      Alert.alert("User already exists. Please try again.");
     }
   };
 
@@ -156,7 +169,10 @@ export default function Index() {
   const handleLogout = async () => {
     setTasks([]);
     await AsyncStorage.removeItem("authToken");
+    setEmail("");
+    setPassword("");
     setIsLoggedIn(false);
+    
   };
 
 
